@@ -1,22 +1,26 @@
 import discord
 from discord.ext import commands, tasks
-import asyncio
+import os
+import random
 
-# Replace 'YOUR_BOT_TOKEN' with your actual bot token
 with open('token.txt', 'r') as file:
     TOKEN = file.read()
 
-# Replace 'YOUR_CHANNEL_ID' with the actual channel ID where you want the bot to play audio
 FKK_CHANNEL_ID = 942191175975190528
 AFK_CHANNEL_ID = 848348815861743616
 
-# Replace 'audio_file.mp3' with the actual name of your audio file
-AUDIO_FILE = 'audio.mp3'
+AUDIO_FOLDER = 'audio'
 
 intents = discord.Intents.default()
 intents.voice_states = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+
+def getRandomAudioFile():
+    audio_files = os.listdir(AUDIO_FOLDER)
+    return AUDIO_FOLDER + '/' + random.choice(audio_files)
+
 
 @bot.event
 async def on_ready():
@@ -28,6 +32,7 @@ async def on_ready():
     else:
         print(f'Channel with ID {FKK_CHANNEL_ID} not found. Please check the channel ID.')
 
+
 @tasks.loop(seconds=1)
 async def play_audio(channel):
     voice_channel = discord.utils.get(bot.voice_clients, guild=channel.guild)
@@ -36,7 +41,8 @@ async def play_audio(channel):
         voice_channel = await channel.connect()
 
     if not voice_channel.is_playing():
-        voice_channel.play(discord.FFmpegPCMAudio(AUDIO_FILE), after=lambda e: print(f'Error: {e}') if e else None)
+        voice_channel.play(discord.FFmpegPCMAudio(getRandomAudioFile()),
+                           after=lambda e: print(f'Error: {e}') if e else None)
 
 
 @bot.event
@@ -55,5 +61,6 @@ async def on_voice_state_update(member, before, after):
 @bot.event
 async def on_disconnect():
     play_audio.stop()
+
 
 bot.run(TOKEN)
